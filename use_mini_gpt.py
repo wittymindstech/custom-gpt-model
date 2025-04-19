@@ -48,18 +48,20 @@ class MiniGPT(nn.Module):
         super().__init__()
         self.token_embed = nn.Embedding(vocab_size, n_embed)
         self.pos_encoder = PositionalEncoding(n_embed)
-        self.transformer_blocks = nn.Sequential(*[
+        self.transformer_blocks = nn.ModuleList([
             TransformerBlock(n_embed, n_head, dropout) for _ in range(n_layer)
         ])
+
         self.lm_head = nn.Linear(n_embed, vocab_size)
 
     def forward(self, x):
-        x = self.token_embed(x)
-        x = self.pos_encoder(x)
-        seq_len = x.size(1)
-        attn_mask = torch.triu(torch.ones(seq_len, seq_len) * float('-inf'), diagonal=1).to(x.device)
-        x = self.transformer_blocks(x, attn_mask=attn_mask)
-        return self.lm_head(x)
+    	x = self.token_embed(x)
+    	x = self.pos_encoder(x)
+    	seq_len = x.size(1)
+    	attn_mask = torch.triu(torch.ones(seq_len, seq_len) * float('-inf'), diagonal=1).to(x.device)
+    	for block in self.transformer_blocks:
+        	x = block(x, attn_mask=attn_mask)
+    	return self.lm_head(x)
 
 block_size = 8
 n_embed = 64
@@ -80,3 +82,6 @@ def generate(model, start_text="hello ", steps=30):
 
 prompt = input("Enter prompt: ")
 print("\nGenerated:", generate(model, prompt))
+
+
+

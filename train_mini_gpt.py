@@ -1,10 +1,11 @@
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
 import pickle
 
-text = "hello world. hello AI. hello future. welcome to the world of AI."
+text = "hello world. hello AI. hello future. welcome to the world of AI. Capital of China is Beijing"
 chars = sorted(list(set(text)))
 stoi = {ch: i for i, ch in enumerate(chars)}
 itos = {i: ch for ch, i in stoi.items()}
@@ -60,7 +61,7 @@ class MiniGPT(nn.Module):
         super().__init__()
         self.token_embed = nn.Embedding(vocab_size, n_embed)
         self.pos_encoder = PositionalEncoding(n_embed)
-        self.transformer_blocks = nn.Sequential(*[
+        self.transformer_blocks = nn.ModuleList([
             TransformerBlock(n_embed, n_head, dropout) for _ in range(n_layer)
         ])
         self.lm_head = nn.Linear(n_embed, vocab_size)
@@ -70,7 +71,8 @@ class MiniGPT(nn.Module):
         x = self.pos_encoder(x)
         seq_len = x.size(1)
         attn_mask = torch.triu(torch.ones(seq_len, seq_len) * float('-inf'), diagonal=1).to(x.device)
-        x = self.transformer_blocks(x, attn_mask=attn_mask)
+        for block in self.transformer_blocks:
+            x = block(x, attn_mask=attn_mask)
         return self.lm_head(x)
 
 n_embed = 64
